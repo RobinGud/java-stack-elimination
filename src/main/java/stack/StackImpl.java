@@ -17,34 +17,33 @@ public class StackImpl implements Stack {
         }
     }
 
-    final int ITERATION_AROUND = 1;
-    final int ARRAY_SIZE = 60;
-    final int WAITING = 20;
-    final Random rnd = new Random(0);
+    final int ITERATION_AROUND = 3;
+    final int ARRAY_SIZE = 50;
+    final int ITERATION_WAIT = 20;
+    final Random rnd = new Random(7);
     private AtomicRef<Node> head = new AtomicRef<>(null);
     private List<AtomicRef<Integer>> eliminationArray = Collections.nCopies(ARRAY_SIZE, new AtomicRef<Integer>(null));
 
     @Override
     public void push(int x) {
-        int randomIndex = rnd.nextInt(ARRAY_SIZE);
+        int randomIndex = rnd.nextInt(ARRAY_SIZE - ITERATION_AROUND * 2) + ITERATION_AROUND;
+        Integer castedX = x;
 
+        for (int j = randomIndex; j < randomIndex; j++) {
+            if (eliminationArray.get(j).compareAndSet(null, castedX)) {
 
-        for (int j = Math.max(0, randomIndex - ITERATION_AROUND); j < Math.min(ARRAY_SIZE, randomIndex + ITERATION_AROUND); j++) {
-            Integer coatedX = x;
-            if (eliminationArray.get(j).compareAndSet(null, coatedX)) {
-
-                for (int i = 0; i < WAITING; i++) {
+                for (int i = 0; i < ITERATION_WAIT; i++) {
                     Integer value = eliminationArray.get(j).getValue();
-                    if (value == null || ((int) value) != x) {
+                    if (value == null || value != castedX) {
                         return;
                     }
                 }
-            }
 
-            if (!eliminationArray.get(j).compareAndSet(coatedX, null)) {
-                return;
+                if (!eliminationArray.get(j).compareAndSet(castedX, null)) {
+                    return;
+                }
+                break;
             }
-            break;
         }
 
         while (true) {
@@ -60,11 +59,10 @@ public class StackImpl implements Stack {
 
     @Override
     public int pop() {
-        int randomIndex = rnd.nextInt(ARRAY_SIZE);
+        int randomIndex = rnd.nextInt(ARRAY_SIZE - ITERATION_AROUND * 2) + ITERATION_AROUND;
 
-
-        for (int j = Math.max(0, randomIndex - ITERATION_AROUND); j < Math.min(ARRAY_SIZE, randomIndex + ITERATION_AROUND); j++) {
-            Integer value = eliminationArray.get(randomIndex).getValue();
+        for (int j = randomIndex; j < randomIndex; j++) {
+            Integer value = eliminationArray.get(j).getValue();
             if (value != null && eliminationArray.get(j).compareAndSet(value, null)) {
                 return value;
             }
