@@ -17,9 +17,10 @@ public class StackImpl implements Stack {
         }
     }
 
-    final int ARRAY_SIZE = 1;
-    final int WAITING = 1;
-    final Random rnd = new Random();
+    final int ITERATION_AROUND = 1;
+    final int ARRAY_SIZE = 60;
+    final int WAITING = 20;
+    final Random rnd = new Random(0);
     private AtomicRef<Node> head = new AtomicRef<>(null);
     private List<AtomicRef<Integer>> eliminationArray = Collections.nCopies(ARRAY_SIZE, new AtomicRef<Integer>(null));
 
@@ -27,18 +28,23 @@ public class StackImpl implements Stack {
     public void push(int x) {
         int randomIndex = rnd.nextInt(ARRAY_SIZE);
 
-        if (eliminationArray.get(randomIndex).compareAndSet(x, null)) {
 
-            for (int i = 0; i < WAITING; i++) {
-                Integer value = eliminationArray.get(randomIndex).getValue();
-                if (value == null || value != x) {
-                    return;
+        for (int j = Math.max(0, randomIndex - ITERATION_AROUND); j < Math.min(ARRAY_SIZE, randomIndex + ITERATION_AROUND); j++) {
+            Integer coatedX = x;
+            if (eliminationArray.get(j).compareAndSet(null, coatedX)) {
+
+                for (int i = 0; i < WAITING; i++) {
+                    Integer value = eliminationArray.get(j).getValue();
+                    if (value == null || ((int) value) != x) {
+                        return;
+                    }
                 }
             }
-        }
 
-        if (eliminationArray.get(randomIndex).compareAndSet(null, x)) {
-            return;
+            if (!eliminationArray.get(j).compareAndSet(coatedX, null)) {
+                return;
+            }
+            break;
         }
 
         while (true) {
@@ -55,10 +61,13 @@ public class StackImpl implements Stack {
     @Override
     public int pop() {
         int randomIndex = rnd.nextInt(ARRAY_SIZE);
-        Integer value = eliminationArray.get(randomIndex).getValue();
 
-        if (value != null && eliminationArray.get(randomIndex).compareAndSet(value, null)) {
-            return value;
+
+        for (int j = Math.max(0, randomIndex - ITERATION_AROUND); j < Math.min(ARRAY_SIZE, randomIndex + ITERATION_AROUND); j++) {
+            Integer value = eliminationArray.get(randomIndex).getValue();
+            if (value != null && eliminationArray.get(j).compareAndSet(value, null)) {
+                return value;
+            }
         }
 
         while (true) {
@@ -68,7 +77,7 @@ public class StackImpl implements Stack {
                 return Integer.MIN_VALUE;
             }
 
-            if (head.compareAndSet(currentHeadValue, null)) {
+            if (head.compareAndSet(currentHeadValue, currentHeadValue.next.getValue())) {
                 return currentHeadValue.x;
             }
         }
